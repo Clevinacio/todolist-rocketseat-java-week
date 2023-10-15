@@ -2,6 +2,8 @@ package br.com.clevinacio.todolist.web.controller;
 
 import br.com.clevinacio.todolist.domain.model.TaskModel;
 import br.com.clevinacio.todolist.domain.service.TaskService;
+import br.com.clevinacio.todolist.exception.AccessNotAuthorizedException;
+import br.com.clevinacio.todolist.exception.TaskNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,7 +49,14 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public TaskModel update(@RequestBody TaskModel taskModel, @PathVariable UUID id){
-        return this.taskService.updateTask(taskModel, id);
+    public ResponseEntity update(@RequestBody TaskModel taskModel, @PathVariable UUID id, HttpServletRequest request){
+        try{
+            var taskUpdated = this.taskService.updateTask(taskModel, id, (UUID) request.getAttribute("idUser"));
+            return ResponseEntity.ok().body(taskUpdated);
+        }catch (AccessNotAuthorizedException exception){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuário não possui permissão para realizar essa ação");
+        }catch (TaskNotFoundException exception){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Tarefa não encontrada");
+        }
     }
 }

@@ -2,6 +2,8 @@ package br.com.clevinacio.todolist.domain.service;
 
 import br.com.clevinacio.todolist.domain.model.TaskModel;
 import br.com.clevinacio.todolist.domain.repository.TaskRepository;
+import br.com.clevinacio.todolist.exception.AccessNotAuthorizedException;
+import br.com.clevinacio.todolist.exception.TaskNotFoundException;
 import br.com.clevinacio.todolist.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,8 +28,16 @@ public class TaskService {
         return this.taskRepository.findByIdUser(idUser);
     }
 
-    public TaskModel updateTask(TaskModel taskModel, UUID id) {
+    public TaskModel updateTask(TaskModel taskModel, UUID id, UUID idUser) throws AccessNotAuthorizedException, TaskNotFoundException {
         var task = this.taskRepository.findById(id).orElse(null);
+
+        if(task == null){
+            throw new TaskNotFoundException();
+        }
+
+        if(!task.getIdUser().equals(idUser)){
+            throw new AccessNotAuthorizedException();
+        }
 
         Utils.copyNonNullProperties(taskModel, task);
 
