@@ -1,7 +1,6 @@
 package br.com.clevinacio.todolist.domain.filter;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import br.com.clevinacio.todolist.domain.model.UserModel;
 import br.com.clevinacio.todolist.domain.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,29 +21,36 @@ public class FilterTaskAuth extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        var auth = request.getHeader("Authorization");
+        var servletPath = request.getServletPath();
 
-        var authEncoded = auth.substring("Basic".length()).trim();
+        if (servletPath.contains("/tasks/")){
+            var auth = request.getHeader("Authorization");
 
-        byte[] decodedPassword = Base64.getDecoder().decode(authEncoded);
-        var authString = new String(decodedPassword);
+            var authEncoded = auth.substring("Basic".length()).trim();
 
-        String[] credentials = authString.split(":");
+            byte[] decodedPassword = Base64.getDecoder().decode(authEncoded);
+            var authString = new String(decodedPassword);
 
-        String username = credentials[0];
-        String password = credentials[1];
+            String[] credentials = authString.split(":");
 
-        var userReq = userRepository.findByUsername(username);
-        if(userReq == null){
-            response.sendError(401);
-        }else {
-            var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), userReq.getPassword());
-            if(passwordVerify.verified){
-                filterChain.doFilter(request,response);
-            }else {
+            String username = credentials[0];
+            String password = credentials[1];
+
+            var userReq = userRepository.findByUsername(username);
+            if(userReq == null){
                 response.sendError(401);
+            }else {
+                var passwordVerify = BCrypt.verifyer().verify(password.toCharArray(), userReq.getPassword());
+                if(passwordVerify.verified){
+                    request.setAttribute("idUser", userReq.getId());
+                    filterChain.doFilter(request,response);
+                }else {
+                    response.sendError(401);
+                }
             }
-
+        }else {
+            filterChain.doFilter(request,response);
         }
+
     }
 }
